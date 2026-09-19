@@ -3,7 +3,7 @@ created: '2026-09-19'
 id: EPIC-TSN-1
 points: null
 priority: must
-status: draft
+status: active
 tags:
 - v0.1
 target_date: null

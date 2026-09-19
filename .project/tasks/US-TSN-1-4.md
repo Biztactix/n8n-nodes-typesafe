@@ -1,13 +1,13 @@
 ---
 archived: false
-assignee: null
+assignee: claude
 claimed_at: null
 claimed_by_run: null
 created: '2026-09-19'
 depends_on: []
 id: US-TSN-1-4
 points: 2
-status: todo
+status: done
 story_id: US-TSN-1
 tags: []
 title: Local n8n harness with the built package linked

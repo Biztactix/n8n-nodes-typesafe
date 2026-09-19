@@ -1,13 +1,13 @@
 ---
 archived: false
-assignee: null
+assignee: claude
 claimed_at: null
 claimed_by_run: null
 created: '2026-09-19'
 depends_on: []
 id: US-TSN-4-3
 points: 1
-status: todo
+status: done
 story_id: US-TSN-4
 tags: []
 title: 'README: install, credential, question syntax, output shape'

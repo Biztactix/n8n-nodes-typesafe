@@ -8,7 +8,7 @@ depends_on:
 - US-TSN-3-3
 id: US-TSN-3-1
 points: 1
-status: todo
+status: review
 story_id: US-TSN-3
 tags: []
 title: 'Test: A CI workflow runs npm ci, lint, build and test on push to main and

@@ -1,6 +1,6 @@
 ---
 archived: false
-assignee: null
+assignee: claude
 claimed_at: null
 claimed_by_run: null
 created: '2026-09-19'
@@ -8,7 +8,7 @@ depends_on:
 - US-TSN-3-3
 id: US-TSN-3-4
 points: 2
-status: todo
+status: done
 story_id: US-TSN-3
 tags: []
 title: 'Release workflow: publish to npm on version tag'

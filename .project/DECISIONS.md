@@ -2,6 +2,13 @@
 
 Newest first. Status: Accepted / Proposed / Superseded.
 
+## D-010: Unit tests run on `node:test` against a separate TypeScript build
+- **Date:** 2026-09-19
+- **Status:** Accepted
+- **Context:** `questions.ts` is pure and needs unit tests, but D-005 keeps the package dependency-free and a test runner (vitest/jest/tsx) would be a sizeable dev-dependency tree. Node 20.15+ (Node 24 on the dev box) ships `node:test` and `node:assert`.
+- **Decision:** Tests live in `test/*.test.ts`, use the built-in `node:test` + `node:assert` only, and are compiled by their own `tsconfig.test.json` into the gitignored `dist-test/`. `npm test` = `rimraf dist-test && tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js`, so a type error or a failed assertion exits non-zero. The only new dev dependency is `@types/node` (types only, no runtime code). The main `tsconfig.json` still includes `nodes/` and `credentials/` only, so `dist/` — and therefore the npm tarball — never contains tests.
+- **Consequences:** Zero runtime deps and no runner to keep up to date; the cost is no TS transform on the fly (tests run against compiled JS, stack traces come via source maps) and no built-in mocking/snapshots. `npm test` must be run after edits, not `--watch`. Adding a test file needs no script change (the glob picks it up); nesting test files in subdirectories would.
+
 ## D-009: CI and hosting on GitHub with GitHub Actions
 - **Date:** 2026-09-19
 - **Status:** Accepted (not yet implemented)

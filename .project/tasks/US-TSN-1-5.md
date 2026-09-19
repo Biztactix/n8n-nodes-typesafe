@@ -1,6 +1,6 @@
 ---
 archived: false
-assignee: null
+assignee: claude
 claimed_at: null
 claimed_by_run: null
 created: '2026-09-19'
@@ -8,7 +8,7 @@ depends_on:
 - US-TSN-1-4
 id: US-TSN-1-5
 points: 3
-status: todo
+status: done
 story_id: US-TSN-1
 tags: []
 title: Exercise the node in n8n and fix UI and runtime issues

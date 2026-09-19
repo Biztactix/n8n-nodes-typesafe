@@ -1,13 +1,13 @@
 ---
 archived: false
-assignee: null
+assignee: claude
 claimed_at: null
 claimed_by_run: null
 created: '2026-09-19'
 depends_on: []
 id: US-TSN-3-3
 points: 2
-status: todo
+status: done
 story_id: US-TSN-3
 tags: []
 title: 'CI workflow: lint, build, test on push and PR'

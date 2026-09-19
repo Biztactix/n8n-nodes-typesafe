@@ -1,6 +1,6 @@
 ---
 archived: false
-assignee: null
+assignee: claude
 claimed_at: null
 claimed_by_run: null
 created: '2026-09-19'
@@ -8,7 +8,7 @@ depends_on:
 - US-TSN-1-5
 id: US-TSN-1-1
 points: 1
-status: todo
+status: done
 story_id: US-TSN-1
 tags: []
 title: 'Test: A local n8n started with the built package linked into ~/.n8n/custom

@@ -12,7 +12,7 @@ epic_id: EPIC-TSN-1
 id: US-TSN-3
 points: 3
 priority: should
-status: backlog
+status: active
 tags:
 - v0.1
 - ci

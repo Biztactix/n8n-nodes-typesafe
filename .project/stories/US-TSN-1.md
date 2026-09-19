@@ -14,7 +14,7 @@ epic_id: EPIC-TSN-1
 id: US-TSN-1
 points: 5
 priority: must
-status: backlog
+status: done
 tags:
 - v0.1
 - n8n

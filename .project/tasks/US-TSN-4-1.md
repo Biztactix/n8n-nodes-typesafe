@@ -1,6 +1,6 @@
 ---
 archived: false
-assignee: null
+assignee: claude
 claimed_at: null
 claimed_by_run: null
 created: '2026-09-19'
@@ -9,7 +9,7 @@ depends_on:
 - US-TSN-4-3
 id: US-TSN-4-1
 points: 1
-status: todo
+status: done
 story_id: US-TSN-4
 tags: []
 title: 'Test: examples/ contains an Outlook-trigger variant (trigger, TypeSafe AI

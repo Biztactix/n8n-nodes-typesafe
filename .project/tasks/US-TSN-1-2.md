@@ -1,6 +1,6 @@
 ---
 archived: false
-assignee: null
+assignee: claude
 claimed_at: null
 claimed_by_run: null
 created: '2026-09-19'
@@ -8,7 +8,7 @@ depends_on:
 - US-TSN-1-5
 id: US-TSN-1-2
 points: 1
-status: todo
+status: done
 story_id: US-TSN-1
 tags: []
 title: 'Test: Ask Questions returns results.<name> and typesafe.answers for noul,
