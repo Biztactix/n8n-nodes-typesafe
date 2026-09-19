@@ -10,13 +10,13 @@
     "classification"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/Biztactix-Ryan/n8n-nodes-typesafe",
+  "homepage": "https://github.com/Biztactix/n8n-nodes-typesafe",
   "author": {
     "name": "Biztactix"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Biztactix-Ryan/n8n-nodes-typesafe.git"
+    "url": "https://github.com/Biztactix/n8n-nodes-typesafe.git"
   },
   "engines": {
     "node": ">=20.15"
