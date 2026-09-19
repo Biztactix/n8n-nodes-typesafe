@@ -1,6 +1,16 @@
+activity_log_max_bytes: null
+activity_log_max_days: null
+auto_commit: false
+deploy_branch: null
+description: n8n community node for the TypeSafe AI API (classify, score, yes/no over
+  text or JSON)
 name: n8n-nodes-typesafe
+next_epic_id: 2
+next_sprint_id: 2
+next_story_id: 7
 prefix: TSN
-description: "n8n community node for the TypeSafe AI API (classify, score, yes/no over text or JSON)"
-repo: ""
-next_story_id: 1
-next_epic_id: 1
+repo: ''
+stale_claim_hours: 2.0
+tools:
+  maintenance: false
+  web: false
