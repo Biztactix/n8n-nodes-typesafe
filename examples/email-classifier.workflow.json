@@ -1,0 +1,91 @@
+{
+  "name": "Email classifier (TypeSafe AI)",
+  "nodes": [
+    {
+      "parameters": {
+        "format": "simple",
+        "options": {}
+      },
+      "name": "Email Trigger (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "systemOne",
+        "stateType": "text",
+        "stateText": "=From: {{ $json.from }}\nSubject: {{ $json.subject }}\n\n{{ $json.textPlain || $json.text }}",
+        "model": "",
+        "questions": {
+          "choice": [
+            {
+              "name": "category",
+              "instructions": "Which team should handle this email?",
+              "labels": "billing = invoices, payments, refunds, subscriptions\nsupport = technical problems, outages, how-to questions\nsales = quotes, new business, pricing enquiries\nspam = marketing, newsletters, unsolicited offers"
+            }
+          ],
+          "score": [
+            {
+              "name": "urgency",
+              "instructions": "How urgent is this email?",
+              "rubric": "can wait a week\nthis week\ntoday\nright now"
+            }
+          ],
+          "noul": [
+            {
+              "name": "needsReply",
+              "instructions": "Does this email need a human reply?",
+              "whenTrue": "A person must respond to the sender.",
+              "whenFalse": "No response is needed."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "TypeSafe AI",
+      "type": "@biztactix/n8n-nodes-typesafe.typeSafe",
+      "typeVersion": 1,
+      "position": [260, 0],
+      "credentials": {
+        "typeSafeApi": {
+          "id": "",
+          "name": "TypeSafe AI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" }, "conditions": [ { "leftValue": "={{ $json.results.category }}", "rightValue": "billing", "operator": { "type": "string", "operation": "equals" } } ], "combinator": "and" }, "renameOutput": true, "outputKey": "billing" },
+            { "conditions": { "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" }, "conditions": [ { "leftValue": "={{ $json.results.category }}", "rightValue": "support", "operator": { "type": "string", "operation": "equals" } } ], "combinator": "and" }, "renameOutput": true, "outputKey": "support" },
+            { "conditions": { "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" }, "conditions": [ { "leftValue": "={{ $json.results.category }}", "rightValue": "sales", "operator": { "type": "string", "operation": "equals" } } ], "combinator": "and" }, "renameOutput": true, "outputKey": "sales" }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "name": "Route by category",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [520, 0]
+    },
+    { "parameters": {}, "name": "Billing", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [780, -200] },
+    { "parameters": {}, "name": "Support", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [780, -60] },
+    { "parameters": {}, "name": "Sales", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [780, 80] },
+    { "parameters": {}, "name": "Other / spam", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [780, 220] }
+  ],
+  "connections": {
+    "Email Trigger (IMAP)": { "main": [ [ { "node": "TypeSafe AI", "type": "main", "index": 0 } ] ] },
+    "TypeSafe AI": { "main": [ [ { "node": "Route by category", "type": "main", "index": 0 } ] ] },
+    "Route by category": {
+      "main": [
+        [ { "node": "Billing", "type": "main", "index": 0 } ],
+        [ { "node": "Support", "type": "main", "index": 0 } ],
+        [ { "node": "Sales", "type": "main", "index": 0 } ],
+        [ { "node": "Other / spam", "type": "main", "index": 0 } ]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
