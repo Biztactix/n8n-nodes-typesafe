@@ -1,0 +1,6 @@
+name: n8n-nodes-typesafe
+prefix: TSN
+description: "n8n community node for the TypeSafe AI API (classify, score, yes/no over text or JSON)"
+repo: ""
+next_story_id: 1
+next_epic_id: 1
