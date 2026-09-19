@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Least privilege: the workflow only reads the repository.
+permissions:
+  contents: read
+
+# A newer push to the same branch/PR cancels the run it supersedes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: lint, build, test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # package.json engines says >=20.15; "20.x" resolves to the latest 20.
+        # 24.x is the current LTS (Krypton) and what the dev box runs.
+        node-version: ['20.x', '24.x']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      # --ignore-scripts: no dependency lifecycle script is needed to lint, build
+      # or test this package (we only use n8n-workflow's types), and running them
+      # breaks the install — isolated-vm, a transitive dep of n8n-workflow, tries
+      # a native node-gyp build that does not compile against Node 20's V8 headers.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test
+    # No secrets are used and no live TypeSafe API call is made here:
+    # `npm run smoke` needs TYPESAFE_API_KEY and stays a manual, local step.

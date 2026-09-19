@@ -1,0 +1,91 @@
+name: Release
+
+# Publishing is driven by tags only: pushing to main never publishes.
+# Release = bump the version in package.json, commit, tag vX.Y.Z, push the tag.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+# Least privilege at the workflow level; the publish job adds id-token: write.
+permissions:
+  contents: read
+
+# Never cancel a release that is already running — a half-cancelled publish is
+# worse than a duplicate run, which the registry rejects harmlessly anyway.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Environment protection rules (repo Settings → Environments → npm) are what
+    # make every publish need Farhan's manual approval; the job waits here until
+    # a required reviewer approves it. The NPM_TOKEN secret lives on this
+    # environment (or on the repo) — see README "Releasing".
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@biztactix/n8n-nodes-typesafe
+    permissions:
+      contents: read
+      # Required for npm provenance: npm exchanges this OIDC token with Sigstore
+      # to attest that this tarball was built from this repo at this commit.
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # One Node version, unlike ci.yml's 20.x/24.x matrix: this job builds the
+      # single tarball that ships, and the emitted JS depends on tsc's target,
+      # not on the Node that ran it. 24.x is the current LTS and the dev box
+      # version; ci.yml already proves the package on the 20.x floor.
+      # registry-url writes the .npmrc auth line that npm publish reads from
+      # NODE_AUTH_TOKEN (the default registry line covers the @biztactix scope).
+      - name: Set up Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      # Fail before anything is installed, built or published if the tag and the
+      # manifest disagree — npm would otherwise happily publish a version nobody
+      # tagged. GITHUB_REF_NAME is "v0.1.0"; strip the leading v to compare.
+      - name: Verify tag matches package.json version
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME#v}"
+          pkg_version="$(node -p "require('./package.json').version")"
+          if [ "$tag_version" != "$pkg_version" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} implies version ${tag_version}, but package.json says ${pkg_version}. Bump package.json and re-tag."
+            exit 1
+          fi
+          echo "Releasing ${pkg_version} from tag ${GITHUB_REF_NAME}"
+
+      # --ignore-scripts for the same reason as ci.yml: isolated-vm (a transitive
+      # dev dependency of n8n-workflow) runs a node-gyp build that is not needed
+      # here — this package ships no runtime dependency. It is a flag on this
+      # command only, so the package's own prepublishOnly still runs below.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test
+
+      # npm publish runs this package's prepublishOnly script, which rebuilds
+      # dist/ from scratch (rimraf + tsc + icons), so the tarball always carries
+      # a fresh build of the tagged commit. --access public is also required by
+      # npm for provenance on a scoped package.
+      - name: Publish to npm with provenance
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
