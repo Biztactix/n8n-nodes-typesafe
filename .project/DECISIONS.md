@@ -5,7 +5,7 @@ Newest first. Status: Accepted / Proposed / Superseded.
 ## D-009: CI and hosting on GitHub with GitHub Actions
 - **Date:** 2026-09-19
 - **Status:** Accepted (not yet implemented)
-- **Context:** No commits, remote or CI exist. `package.json` already points at `github.com/Biztactix-Ryan/n8n-nodes-typesafe`.
+- **Context:** No CI exists. The repo lives at `github.com/Biztactix/n8n-nodes-typesafe`.
 - **Decision:** Host on GitHub; Actions runs build + lint + tests on push/PR and publishes to npm on tag.
 - **Consequences:** Needs an `NPM_TOKEN` secret and an `@biztactix` npm org. Pushing and publishing still require asking first.
 

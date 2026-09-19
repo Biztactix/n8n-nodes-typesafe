@@ -13,7 +13,7 @@ This project ships a library, not a service. "Infrastructure" is: the npm regist
 
 ## CI/CD
 
-Status: **none yet**. No commits, no git remote configured, no workflows. Target: GitHub (`github.com/Biztactix-Ryan/n8n-nodes-typesafe`, per `package.json`) with GitHub Actions.
+Status: **no CI yet**. Source is on GitHub at `github.com/Biztactix/n8n-nodes-typesafe` (remote `origin`, branch `main`); GitHub Actions workflows still to be added.
 
 ### Build Pipeline
 
