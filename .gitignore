@@ -1,6 +1,8 @@
 node_modules/
 dist/
+dist-test/
 *.tgz
 .env
 .env.*
 local/
+.n8n-dev/

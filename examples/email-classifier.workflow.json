@@ -46,13 +46,7 @@
       "name": "TypeSafe AI",
       "type": "@biztactix/n8n-nodes-typesafe.typeSafe",
       "typeVersion": 1,
-      "position": [260, 0],
-      "credentials": {
-        "typeSafeApi": {
-          "id": "",
-          "name": "TypeSafe AI API"
-        }
-      }
+      "position": [260, 0]
     },
     {
       "parameters": {

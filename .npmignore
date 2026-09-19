@@ -3,6 +3,10 @@ nodes/
 scripts/
 docs/
 examples/
+test/
+dist-test/
 tsconfig.json
+tsconfig.test.json
 .eslintrc.js
 *.tgz
+.n8n-dev/

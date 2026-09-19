@@ -47,8 +47,29 @@ export class TypeSafeApi implements ICredentialType {
 
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: '={{$credentials.baseUrl}}',
+			// The same fallback the node's execute path uses: a cleared Base URL means the public API and
+			// a trailing slash is trimmed. Sending the raw field made a blank one fail with "ERR_INVALID_URL"
+			// while the node itself still worked.
+			baseURL: '={{ (($credentials.baseUrl || "").trim() || "https://api.typesafe.ai").replace(/\\/+$/, "") }}',
 			url: '/v1/models',
 		},
+		// n8n's own message for a failed test is only the HTTP status text ("Unauthorized"), which does not
+		// say what to do about it.
+		rules: [
+			{
+				type: 'responseCode',
+				properties: {
+					value: 401,
+					message: 'Check your TypeSafe API key: the API rejected it (401 Unauthorized).',
+				},
+			},
+			{
+				type: 'responseCode',
+				properties: {
+					value: 403,
+					message: 'Check your TypeSafe API key: it is not allowed to list models (403 Forbidden).',
+				},
+			},
+		],
 	};
 }
