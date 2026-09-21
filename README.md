@@ -245,19 +245,39 @@ The run has three jobs around one tarball:
    stable `releases/latest/download/` URL) and `SHA256SUMS.txt` to a GitHub Release for the tag, with
    the manual-install command in the notes. It does not wait for the npm approval and needs no secret,
    so the download does not depend on the npm token.
-3. **publish** waits for approval on the `npm` environment, then runs
-   `npm publish <that tarball> --access public --provenance` — the file on npm and the file on the
-   Releases page are byte-identical. Provenance also requires the GitHub repo to stay public.
+3. **publish** *stages* that tarball with `npm stage publish <that tarball> --access public
+   --provenance`. It never runs `npm publish`: a staged version sits on the registry, not installable,
+   until a maintainer approves it with 2FA. The file on npm and the file on the Releases page are
+   byte-identical. Provenance also requires the GitHub repo to stay public.
 
-Prerequisites, both one-time and both Farhan's to do in the GitHub repo settings:
-- **Secrets → Actions → `NPMPUSH`** – an npm automation token for the `@biztactix` scope. Done
-  (repo secret, added 2026-09-21).
-- **Environments → `npm`** with a required reviewer – the publish job targets this environment, so
-  every release waits for Farhan to approve it before anything reaches the registry. **Still to do,
-  and do it before the first tag:** GitHub auto-creates a missing environment with no protection
-  rules, so without it the first `v*.*.*` tag publishes to npm with no approval step.
+Then make the staged version public, from any machine logged in to npm (needs npm >= 11.16), or from
+the package's page on npmjs.com:
 
-Nothing reaches npm until that approval; the GitHub Release appears as soon as the build passes. A tag
+```sh
+npm stage list @biztactix/n8n-nodes-typesafe     # shows the stage id
+npm stage download <stage-id>                    # optional: inspect, compare with SHA256SUMS.txt
+npm stage approve <stage-id>                     # prompts for 2FA, then the version is live
+npm stage reject <stage-id>                      # or throw it away (also 2FA)
+```
+
+A staged version reserves its version number, so a rejected or failed release needs the stage rejected
+before the same version can be staged again.
+
+Prerequisites, all one-time and all Farhan's to do:
+- **Secrets → Actions → `NPMPUSH`** – an npm token with write access to the `@biztactix` scope. Done
+  (repo secret, added 2026-09-21). Staging works with any token type, so this should be a granular
+  token *without* "bypass 2FA"; npm recommends deleting bypass tokens once staging is in use.
+- **The package must already exist on npm.** `npm help stage` lists that as a prerequisite, and
+  `@biztactix/n8n-nodes-typesafe` does not exist yet. If the first staged release is refused for that
+  reason, publish 0.1.0 once by hand (`npm publish --access public` from a checkout of the tag, with
+  2FA) and use staging from the next version on. Untested either way until the first tag.
+- **2FA enabled on the approving npm account** – `npm stage approve` requires it.
+- *Optional:* **Environments → `npm`** with a required reviewer. The publish job targets this
+  environment, so a reviewer makes the job wait before it even stages. Without one GitHub auto-creates
+  the environment unprotected and the job just runs — which now only stages, so nothing goes public.
+
+Nothing is installable from npm until the stage is approved; the GitHub Release appears as soon as the
+build passes. A tag
 can be deleted and re-pushed if the guard fails — a re-run replaces the assets on the existing release.
 
 ## License

@@ -380,9 +380,22 @@ and `ci.yml` already proves the package on the `>=20.15` floor on every push.
 - **`publish`** (`needs: build`, `environment: npm`, `id-token: write`): downloads the same artifact;
   `actions/setup-node@v7` with `registry-url: https://registry.npmjs.org` (which writes the `.npmrc`
   auth line that reads `NODE_AUTH_TOKEN`; the default-registry line covers the `@biztactix` scope, so
-  no `scope` input is needed); `npm publish release/<tarball> --access public --provenance` with
-  `NODE_AUTH_TOKEN` from `secrets.NPMPUSH`. No checkout and no rebuild, so npm and the Releases page
-  carry byte-identical files.
+  no `scope` input is needed); a guard that fails if this npm has no `npm stage` command; then
+  `npm stage publish release/<tarball> --access public --provenance` with `NODE_AUTH_TOKEN` from
+  `secrets.NPMPUSH`. No checkout and no rebuild, so npm and the Releases page carry byte-identical
+  files.
+
+**Staged, never published directly (2026-09-22, Farhan's call).** The job does not run `npm publish`.
+`npm stage publish` (npm >= 11.16; Node 24.21 bundles 11.19) puts the version on the registry in a
+non-public state and defers the 2FA proof-of-presence: it goes live only when a maintainer runs
+`npm stage approve <stage-id>` (or approves on npmjs.com), and `npm stage reject` discards it. It has
+argument parity with `npm publish` — checked locally with
+`npm stage publish <tgz> --access public --dry-run`, which reports `@biztactix/n8n-nodes-typesafe@0.1.0
+(staged)` with the same shasum as the `pre-0.1.0` asset. Consequences: a staged version reserves its
+semver slot, so re-releasing a version means rejecting the stage first; the tag is fixed at staging
+time; and `npm help stage` lists "package must already exist on the registry" as a prerequisite, which
+this package does not yet meet — if the first staged release is refused, 0.1.0 has to be published
+once by hand and staging used from then on. Not exercised against the live registry yet.
 
 **The guard runs first**, before install or build, so a mismatch costs nothing and nothing can reach
 the registry: it compares `${GITHUB_REF_NAME#v}` with `node -p "require('./package.json').version"`
@@ -402,13 +415,13 @@ therefore always carries a `dist/` built from the tagged commit. `npm pack --dry
 `index.js`, `package.json` and the ten `dist/` files — 14 files, ~12 kB packed: no sources, no tests,
 no `.n8n-dev/`, no secrets. (`index.js` is not in `files`; npm always ships the `main` entry.)
 
-**Approval and secrets.** The job declares `environment: npm`, so a required-reviewer protection rule
-on that environment (repo Settings → Environments) makes every publish wait for Farhan's approval.
-The `NPMPUSH` repo secret (an npm token for the `@biztactix` scope) was added on 2026-09-21; the
-workflow was written against the name `NPM_TOKEN` and renamed to match on 2026-09-22. The `npm`
-environment is not yet created — a manual, one-time repo-settings step, and one to do before the first
-tag, because GitHub auto-creates a missing environment without protection rules and the publish would
-then run unapproved. Concurrency uses
+**Approval and secrets.** The release gate is npm's staged-version approval (2FA), above. The job
+also declares `environment: npm`; a required-reviewer rule on it (repo Settings → Environments) would
+add a second wait before staging, but it is optional now — the environment does not exist yet, GitHub
+auto-creates it unprotected, and an unprotected run still only stages. The `NPMPUSH` repo secret (an
+npm token for the `@biztactix` scope) was added on 2026-09-21; the workflow was written against the
+name `NPM_TOKEN` and renamed to match on 2026-09-22. Staging works with any token type, so the token
+should be a granular one without "bypass 2FA". Concurrency uses
 `cancel-in-progress: false`: a release already in flight is never cancelled by a later tag.
 
 **Deliberately left as-is** (reviewed 2026-09-19, US-TSN-3-2; each is a call for Farhan, not a bug):
