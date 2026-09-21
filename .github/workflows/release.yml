@@ -120,7 +120,8 @@ jobs:
 
       # No checkout in this job, so gh is told the repo explicitly. If the tag was
       # deleted and re-pushed (README "Releasing"), the release already exists:
-      # replace its assets instead of failing.
+      # replace its assets instead of failing. GitHub turns a release into a
+      # draft when its tag is deleted, hence --draft=false on that path.
       - name: Create or update the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -144,7 +145,7 @@ jobs:
           EOF
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" release/* --clobber
-            gh release edit "$GITHUB_REF_NAME" --notes-file notes.md
+            gh release edit "$GITHUB_REF_NAME" --notes-file notes.md --draft=false
           else
             gh release create "$GITHUB_REF_NAME" release/* \
               --verify-tag \
