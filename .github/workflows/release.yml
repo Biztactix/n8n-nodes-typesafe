@@ -210,6 +210,8 @@ jobs:
       # when `npm view` says E404 the version is published directly, once. Any
       # other `npm view` failure (network, auth) stops the job rather than being
       # mistaken for "does not exist".
+      # The tarball path must start with ./ — npm reads a bare "release/x.tgz" as
+      # the GitHub shorthand user/repo and tries to clone it.
       - name: Stage on npm (first-ever release publishes directly)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPMPUSH }}
@@ -222,11 +224,11 @@ jobs:
           view_rc=$?
           set -e
           if [ "$view_rc" -eq 0 ]; then
-            npm stage publish "release/${TARBALL}" --access public --provenance
+            npm stage publish "./release/${TARBALL}" --access public --provenance
             echo "Staged, not published. Approve with: \`npm stage list ${PKG}\` then \`npm stage approve <stage-id>\`" >> "$GITHUB_STEP_SUMMARY"
           elif printf '%s' "$view_out" | grep -q 'E404'; then
             echo "::notice::${PKG} does not exist on npm yet; npm stage cannot create a package, so this first version is published directly."
-            npm publish "release/${TARBALL}" --access public --provenance
+            npm publish "./release/${TARBALL}" --access public --provenance
             echo "First release of ${PKG}: published directly (npm stage needs an existing package). Later releases are staged." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::error::Could not tell whether ${PKG} exists on npm; refusing to guess."

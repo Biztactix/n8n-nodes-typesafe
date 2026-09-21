@@ -381,7 +381,7 @@ and `ci.yml` already proves the package on the `>=20.15` floor on every push.
   `actions/setup-node@v7` with `registry-url: https://registry.npmjs.org` (which writes the `.npmrc`
   auth line that reads `NODE_AUTH_TOKEN`; the default-registry line covers the `@biztactix` scope, so
   no `scope` input is needed); a guard that fails if this npm has no `npm stage` command; then
-  `npm stage publish release/<tarball> --access public --provenance` with `NODE_AUTH_TOKEN` from
+  `npm stage publish ./release/<tarball> --access public --provenance` (the `./` matters: npm reads a bare `release/x.tgz` as a GitHub `user/repo` shorthand — the first v0.1.0 run failed on exactly that, 2026-09-22) with `NODE_AUTH_TOKEN` from
   `secrets.NPMPUSH`. No checkout and no rebuild, so npm and the Releases page carry byte-identical
   files.
 
