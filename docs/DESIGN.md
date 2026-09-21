@@ -4,7 +4,7 @@ _Written 2026-09-19 from the planning conversation in the C# SDK repo. This is t
 
 ## Goal
 Let n8n workflows call TypeSafe AI without hand-written HTTP. First consumer: Biztactix's n8n at
-`automation.biztactix.com.au`, where inbound email should be classified as the first step (which team,
+`automate.biztactix.com.au`, where inbound email should be classified as the first step (which team,
 how urgent, does it need a reply) and routed with a Switch node.
 
 ## Why a node and not the HTTP Request node
@@ -81,13 +81,35 @@ node to pull out answers. It was the ten-minute route. A community node is bette
   generic one and keeps the real cause in `error.messages` — the first of those messages
   ("timeout of 2000ms exceeded", "getaddrinfo ENOTFOUND …").
 
-## Installing on automation.biztactix.com.au
+## Installing on automate.biztactix.com.au
 Self-hosted n8n installs community nodes from **Settings → Community Nodes → Install** by npm package name, so
 publishing `@biztactix/n8n-nodes-typesafe` is the clean path. Requires `N8N_COMMUNITY_PACKAGES_ENABLED` not set to false (default allows).
 Alternatives if we don't want to publish yet:
 - `npm pack`, copy the `.tgz` into the container, `npm install /path/file.tgz` inside `~/.n8n/nodes`, restart n8n;
 - or mount the built package into the custom extensions dir and set `N8N_CUSTOM_EXTENSIONS=/path`.
-Which one depends on how the instance is deployed (Coolify/Docker Compose/other). **Unknown as of writing — ask Farhan.**
+
+**Done on 2026-09-20 (pre-release, tarball route).** The instance is n8n 2.1.5 in Coolify, queue mode
+(`EXECUTIONS_MODE=queue`, main + workers sharing the persistent `/home/node/.n8n` volume). The 0.1.0 tarball is
+attached to the GitHub pre-release `pre-0.1.0` (a tag outside `v*.*.*`, so `release.yml` does not fire). In the
+main container:
+
+```sh
+cd /tmp && wget https://github.com/Biztactix/n8n-nodes-typesafe/releases/download/pre-0.1.0/biztactix-n8n-nodes-typesafe-0.1.0.tgz
+cd ~/.n8n/nodes && npm install /tmp/biztactix-n8n-nodes-typesafe-0.1.0.tgz --legacy-peer-deps --ignore-scripts --omit=dev
+```
+
+then restart main **and** workers. `--legacy-peer-deps` matters: `n8n-workflow` is a peer dependency and npm
+would otherwise install its own copy (and `isolated-vm`'s native build) next to the node. The node keeps its
+published type `@biztactix/n8n-nodes-typesafe.typeSafe`, so the example workflows import unchanged and nothing
+needs renaming when the npm install replaces this one. It is not listed under Settings → Community Nodes
+(not installed through the UI). Gotchas met on the way:
+- An editor tab opened before the restart keeps its old node list — reload it, or the node looks missing.
+- Server-side proof of loading without debug logs:
+  `grep -o '@biztactix/n8n-nodes-typesafe[^"]*' ~/.cache/n8n/public/types/nodes.json` (regenerated at every start).
+- `~/.n8n/nodes/package.json` records the dependency as `file:` + the tarball path; with the tarball in `/tmp`
+  that path dies on redeploy and can break the next npm operation in that folder (e.g. a UI install). Keep the
+  tarball on the volume (`~/.n8n/`) and install from there, or replace this install with the npm one.
+- Verified locally that both n8n 2.1.5 and 2.39.8 load a scoped package from `~/.n8n/nodes` this way.
 
 ## Try it in n8n (local harness)
 `npm run n8n:dev` is the one command: it builds the package, links `dist/` into an isolated n8n user
@@ -340,15 +362,27 @@ Node 20.20.2 and Node 24.18.0 (83 tests).
 
 ## Release (.github/workflows/release.yml)
 Triggers on pushed tags matching `v*.*.*` and on nothing else — merging to `main` never publishes.
-One job, `publish`, on `ubuntu-latest`, on Node `24.x` only: this job builds the single tarball that
-ships, the emitted JavaScript is decided by `tsc`'s target rather than by the Node that ran it, and
-`ci.yml` already proves the package on the `>=20.15` floor on every push.
+Three jobs on `ubuntu-latest`, Node `24.x` only: one tarball is built and it is the thing that ships
+everywhere, the emitted JavaScript is decided by `tsc`'s target rather than by the Node that ran it,
+and `ci.yml` already proves the package on the `>=20.15` floor on every push.
 
-Steps, in order: `actions/checkout@v7`; `actions/setup-node@v7` with `cache: npm` and
-`registry-url: https://registry.npmjs.org` (which writes the `.npmrc` auth line that reads
-`NODE_AUTH_TOKEN`; the default-registry line covers the `@biztactix` scope, so no `scope` input is
-needed); **the tag/version guard**; `npm ci --ignore-scripts`; `npm run lint`; `npm run build`;
-`npm test`; `npm publish --access public --provenance` with `NODE_AUTH_TOKEN` from `secrets.NPM_TOKEN`.
+- **`build`**: `actions/checkout@v7`; `actions/setup-node@v7` with `cache: npm`; **the tag/version
+  guard**; `npm ci --ignore-scripts`; `npm run lint`; `npm run build`; `npm test`; `npm pack` into
+  `release/`, plus a version-less copy `n8n-nodes-typesafe.tgz` and `SHA256SUMS.txt`; uploaded as the
+  `package` workflow artifact (`actions/upload-artifact@v7`).
+- **`github-release`** (`needs: build`, `contents: write`, no environment, no secret): downloads the
+  artifact and runs `gh release create <tag> --verify-tag --generate-notes` with the three files and
+  the manual-install command in the notes. If the release already exists (tag deleted and re-pushed)
+  it `gh release upload --clobber`s instead. Added 2026-09-22 so a hand install needs no clone, no
+  build and no npm publish: `npm install https://github.com/Biztactix/n8n-nodes-typesafe/releases/latest/download/n8n-nodes-typesafe.tgz`
+  inside `~/.n8n/nodes`. Installing from the URL also avoids the `file:`-path problem noted under the
+  pre-release install above — `~/.n8n/nodes/package.json` records the URL, not a `/tmp` path.
+- **`publish`** (`needs: build`, `environment: npm`, `id-token: write`): downloads the same artifact;
+  `actions/setup-node@v7` with `registry-url: https://registry.npmjs.org` (which writes the `.npmrc`
+  auth line that reads `NODE_AUTH_TOKEN`; the default-registry line covers the `@biztactix` scope, so
+  no `scope` input is needed); `npm publish release/<tarball> --access public --provenance` with
+  `NODE_AUTH_TOKEN` from `secrets.NPMPUSH`. No checkout and no rebuild, so npm and the Releases page
+  carry byte-identical files.
 
 **The guard runs first**, before install or build, so a mismatch costs nothing and nothing can reach
 the registry: it compares `${GITHUB_REF_NAME#v}` with `node -p "require('./package.json').version"`
@@ -360,23 +394,26 @@ token with Sigstore) and, for a scoped package that is not yet public, `--access
 provenance otherwise. The registry also requires `package.json`'s `repository.url` to name the repo the
 workflow ran in; it is `https://github.com/Biztactix/n8n-nodes-typesafe.git`, which matches.
 
-**`--ignore-scripts` on install, not on publish.** The flag is per-invocation and no `.npmrc` sets
-`ignore-scripts`, so `npm publish` still runs this package's own `prepublishOnly` (`npm run build`) —
-confirmed in npm 11's `lib/commands/publish.js`, which runs `prepublishOnly` for a directory publish
-unless the `ignore-scripts` config is on. The tarball therefore always carries a `dist/` rebuilt from
-the tagged commit. `npm pack --dry-run` on the built tree lists exactly `LICENSE`, `README.md`,
+**Fresh build without `prepublishOnly`.** Until 2026-09-22 the job published the directory and relied
+on `prepublishOnly` to rebuild `dist/`. Publishing a tarball runs no lifecycle scripts, so freshness
+now comes from the `build` job itself: a clean checkout, and `npm run build` begins with `rimraf dist`.
+`prepublishOnly` stays in `package.json` for a by-hand `npm publish` from a working tree. The tarball
+therefore always carries a `dist/` built from the tagged commit. `npm pack --dry-run` on the built tree lists exactly `LICENSE`, `README.md`,
 `index.js`, `package.json` and the ten `dist/` files — 14 files, ~12 kB packed: no sources, no tests,
 no `.n8n-dev/`, no secrets. (`index.js` is not in `files`; npm always ships the `main` entry.)
 
 **Approval and secrets.** The job declares `environment: npm`, so a required-reviewer protection rule
 on that environment (repo Settings → Environments) makes every publish wait for Farhan's approval.
-The environment and the `NPM_TOKEN` secret (an npm automation token for the `@biztactix` scope) are
-not yet created — both are manual, one-time repo-settings steps. Concurrency uses
+The `NPMPUSH` repo secret (an npm token for the `@biztactix` scope) was added on 2026-09-21; the
+workflow was written against the name `NPM_TOKEN` and renamed to match on 2026-09-22. The `npm`
+environment is not yet created — a manual, one-time repo-settings step, and one to do before the first
+tag, because GitHub auto-creates a missing environment without protection rules and the publish would
+then run unapproved. Concurrency uses
 `cancel-in-progress: false`: a release already in flight is never cancelled by a later tag.
 
 **Deliberately left as-is** (reviewed 2026-09-19, US-TSN-3-2; each is a call for Farhan, not a bug):
 - *Actions pinned to majors (`@v7`), not SHAs.* A major tag is mutable, so a compromised or
-  force-moved tag would run in a job that can mint an OIDC token and see `NPM_TOKEN`. SHA pinning
+  force-moved tag would run in a job that can mint an OIDC token and see `NPMPUSH`. SHA pinning
   removes that at the cost of a Dependabot-shaped upgrade chore on a two-workflow repo. Left on
   majors; revisit if the package gets wider use.
 - *Any tag on any commit can start a release.* GitHub cannot restrict a tag trigger to commits on
@@ -394,7 +431,7 @@ not yet created — both are manual, one-time repo-settings steps. Concurrency u
   the cost of a second checkout.
 
 ## Open questions
-1. How n8n is deployed at automation.biztactix.com.au (decides publish vs mount).
+1. How n8n is deployed at automate.biztactix.com.au (decides publish vs mount).
 2. The real email categories and any extra per-email questions (urgency scale, needs-reply, sentiment).
 3. Which mailbox/trigger: IMAP, Microsoft 365, Gmail.
 4. Whether to publish under the `@biztactix` npm scope or unscoped `n8n-nodes-typesafe` (unscoped is what n8n's verified list expects).
@@ -405,6 +442,6 @@ not yet created — both are manual, one-time repo-settings steps. Concurrency u
 - [x] Unit tests for `questions.ts` (`node:test`, compiled to `dist-test/`; 83 tests).
 - [x] Lint clean under `eslint-plugin-n8n-nodes-base` (one documented suppression on the credential docs URL).
 - [~] CI: lint + build + tests on push and PR — `.github/workflows/ci.yml` written and verified locally (2026-09-19), not yet pushed, so it has never run on GitHub.
-- [~] Release on tag: `.github/workflows/release.yml` publishes to npm with provenance on a `v*.*.*` tag (2026-09-19). Written and checked locally (actionlint clean, guard logic exercised, `npm pack --dry-run` tarball verified); never run, nothing published. Still needs the `NPM_TOKEN` secret and the `npm` environment with a required reviewer, both created by Farhan in repo settings.
-- [ ] Install on automation.biztactix.com.au and wire the real email workflow.
+- [~] Release on tag: `.github/workflows/release.yml` publishes to npm with provenance on a `v*.*.*` tag (2026-09-19). Written and checked locally (actionlint clean, guard logic exercised, `npm pack --dry-run` tarball verified); never run, nothing published. Still needs the `NPMPUSH` secret and the `npm` environment with a required reviewer, both created by Farhan in repo settings.
+- [ ] Install on automate.biztactix.com.au and wire the real email workflow.
 - [ ] Later: batch mode (many items per request if the API adds it), Typed enum helpers, retries-after header awareness.

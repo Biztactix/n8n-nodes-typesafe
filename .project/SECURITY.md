@@ -58,7 +58,7 @@ None in the package. n8n execution data retention is an instance setting (`EXECU
 |--------|----------|----------|
 | TypeSafe API key (production) | n8n credential store, encrypted | repo, workflow JSON, logs |
 | TypeSafe API key (dev) | `TYPESAFE_API_KEY` env; source on the dev box is the gitignored `../TypesafeAI-C#/tests/TypeSafe.Sdk.IntegrationTests/Local/local.runsettings` | this repo; do not copy it, read it into the environment |
-| `NPM_TOKEN` (planned) | GitHub Actions secret | repo |
+| `NPMPUSH` (added 2026-09-21) | GitHub Actions secret | repo |
 
 `.gitignore` excludes `.env`, `.env.*`, `local/`, `*.tgz`. The published tarball contains `dist/` only (`files` in `package.json`). The smoke script never prints the key. Exported workflow JSON in `examples/` must reference credentials by name only.
 

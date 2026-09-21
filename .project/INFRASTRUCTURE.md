@@ -8,12 +8,12 @@ This project ships a library, not a service. "Infrastructure" is: the npm regist
 |------------|-----|---------|-------|
 | Development | local (`/mnt/repos/n8n-nodes-typesafe`) | Build, lint, smoke test; local n8n via `npx n8n` with the package linked into `~/.n8n/custom` | Node 24 on the dev box. Local n8n try-out not done yet |
 | Staging | none | — | No staging n8n. Test with a disabled/duplicate workflow on production n8n, or locally |
-| Production | https://automation.biztactix.com.au | Biztactix n8n, runs the mail workflow | n8n runs in **Coolify** (Docker). Node installed via Settings → Community Nodes from npm |
+| Production | https://automate.biztactix.com.au | Biztactix n8n, runs the mail workflow | n8n **2.1.5** in **Coolify** (Docker), queue mode (main + workers sharing the persistent `/home/node/.n8n` volume). Since 2026-09-20 the node is installed from the `pre-0.1.0` GitHub pre-release tarball in `~/.n8n/nodes` (docs/DESIGN.md); to be replaced by the npm install via Settings → Community Nodes |
 | Upstream API | https://api.typesafe.ai | TypeSafe AI | Third party; single production endpoint |
 
 ## CI/CD
 
-Status: **no CI yet**. Source is on GitHub at `github.com/Biztactix/n8n-nodes-typesafe` (remote `origin`, branch `main`); GitHub Actions workflows still to be added.
+Status: **CI live since 2026-09-20** (`.github/workflows/ci.yml`, first run green). Source is on GitHub at `github.com/Biztactix/n8n-nodes-typesafe` (remote `origin`, branch `main`). `release.yml` (publish on `v*.*.*` tag) is pushed but has never run.
 
 ### Build Pipeline
 
@@ -26,7 +26,7 @@ Planned (GitHub Actions), on push and PR: `npm ci` → `npm run lint` → `npm r
 3. On n8n: Settings → Community Nodes → Install (first time) or Update. Requires `N8N_COMMUNITY_PACKAGES_ENABLED` not set to `false` on the Coolify service.
 4. Add a "TypeSafe AI API" credential in n8n; the built-in test hits `/v1/models`.
 
-Fallback without publishing: `npm pack`, copy the `.tgz` into the n8n container, `npm install` it under `~/.n8n/nodes`, restart; or mount the built package and set `N8N_CUSTOM_EXTENSIONS`. On Coolify the `~/.n8n` volume must be persistent or the install is lost on redeploy (TBD: confirm the volume mapping).
+Fallback without publishing: `npm pack`, copy the `.tgz` into the n8n container, `npm install` it under `~/.n8n/nodes`, restart; or mount the built package and set `N8N_CUSTOM_EXTENSIONS`. On Coolify the `~/.n8n` volume is persistent (confirmed 2026-09-20: files from March 2026 survive redeploys, and the tarball install survived a restart).
 
 ### Rollback Procedure
 
@@ -54,7 +54,7 @@ Nothing specific to this package. Failures surface as n8n execution errors; use 
 | `TYPESAFE_DEFAULT_MODEL` | no | Override the model for the smoke script (default `jev-latest`) |
 | `N8N_COMMUNITY_PACKAGES_ENABLED` | n8n host | Must not be `false` for Community Nodes install |
 | `N8N_CUSTOM_EXTENSIONS` | n8n host, fallback only | Path to a mounted build when not installing from npm |
-| `NPM_TOKEN` | CI (planned) | GitHub Actions secret for publish on tag |
+| `NPMPUSH` | CI (repo secret, added 2026-09-21) | GitHub Actions secret for publish on tag |
 
 The node itself reads no environment variables; its key and base URL come from the n8n credential.
 
@@ -63,5 +63,5 @@ The node itself reads no environment variables; its key and base URL come from t
 Source is recoverable from git (once pushed) and published versions from npm. The package holds no data. n8n workflows and encrypted credentials are part of the n8n instance's backup, outside this repo (TBD: confirm Coolify volume/database backups for n8n).
 
 ---
-*Last reviewed: 2026-09-19*
+*Last reviewed: 2026-09-20*
 *Update this document when infrastructure changes. The daily audit checks for staleness.*

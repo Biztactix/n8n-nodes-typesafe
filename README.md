@@ -19,9 +19,30 @@ API (2026-09-19). See [docs/DESIGN.md](docs/DESIGN.md).
 and it needs `N8N_COMMUNITY_PACKAGES_ENABLED` not set to `false` on the instance. The package is not
 published yet, so until it is, use one of the fallbacks below.
 
+### Manual install from GitHub Releases
+
+Every release on the [Releases page](https://github.com/Biztactix/n8n-nodes-typesafe/releases) carries
+the built package as `biztactix-n8n-nodes-typesafe-<version>.tgz` — the same file that goes to npm —
+plus `SHA256SUMS.txt`. No clone or build needed; inside the n8n container:
+
+```sh
+mkdir -p ~/.n8n/nodes && cd ~/.n8n/nodes
+npm install https://github.com/Biztactix/n8n-nodes-typesafe/releases/latest/download/n8n-nodes-typesafe.tgz \
+  --legacy-peer-deps --ignore-scripts --omit=dev
+```
+
+Then restart n8n (main and workers). `n8n-nodes-typesafe.tgz` is a version-less copy of the latest
+release's tarball so that URL stays stable; to pin a version, use
+`releases/download/v<version>/biztactix-n8n-nodes-typesafe-<version>.tgz` instead. `latest` skips
+pre-releases, so until the first `v*.*.*` release exists, take the tarball from the
+[`pre-0.1.0` pre-release](https://github.com/Biztactix/n8n-nodes-typesafe/releases/tag/pre-0.1.0).
+On Coolify `~/.n8n` must be a persistent volume or the install is lost on the next redeploy.
+
+### Other fallbacks
+
 | Fallback | How |
 |----------|-----|
-| Tarball | `npm run build && npm pack` here, copy `biztactix-n8n-nodes-typesafe-<version>.tgz` into the n8n container, `npm install /path/to/that.tgz` inside `~/.n8n/nodes`, restart n8n. On Coolify `~/.n8n` must be a persistent volume or the install is lost on the next redeploy. |
+| Build the tarball yourself | `npm run build && npm pack` here, copy `biztactix-n8n-nodes-typesafe-<version>.tgz` into the n8n container, `npm install /path/to/that.tgz` inside `~/.n8n/nodes` with the flags above, restart n8n. |
 | Custom extensions | Mount the built package somewhere and set `N8N_CUSTOM_EXTENSIONS=/that/path`. n8n scans it for `*.node.js` and `*.credentials.js`, so point it at a directory containing `dist/`, not at a repo root. |
 
 Nodes loaded from a custom-extensions directory are namespaced `CUSTOM.`, so the node type is
@@ -215,18 +236,29 @@ git push origin main
 git push origin v0.2.0      # this is what starts the release
 ```
 
-The run then waits for approval on the `npm` environment. Once approved it checks the tag matches
-`package.json` version (and fails before publishing if it does not), runs `npm ci --ignore-scripts`,
-lint, build and tests on Node 24, and finally `npm publish --access public --provenance`.
-`prepublishOnly` rebuilds `dist/` so the tarball is always a fresh build of the tagged commit.
-Provenance also requires the GitHub repo to stay public.
+The run has three jobs around one tarball:
+
+1. **build** checks the tag matches `package.json` version (and fails before anything ships if it does
+   not), runs `npm ci --ignore-scripts`, lint, build and tests on Node 24, then `npm pack`. `npm run
+   build` starts from a clean `dist/`, so the tarball is always a fresh build of the tagged commit.
+2. **github-release** attaches that tarball, a version-less copy (`n8n-nodes-typesafe.tgz`, for the
+   stable `releases/latest/download/` URL) and `SHA256SUMS.txt` to a GitHub Release for the tag, with
+   the manual-install command in the notes. It does not wait for the npm approval and needs no secret,
+   so the download does not depend on the npm token.
+3. **publish** waits for approval on the `npm` environment, then runs
+   `npm publish <that tarball> --access public --provenance` — the file on npm and the file on the
+   Releases page are byte-identical. Provenance also requires the GitHub repo to stay public.
 
 Prerequisites, both one-time and both Farhan's to do in the GitHub repo settings:
-- **Secrets → Actions → `NPM_TOKEN`** – an npm automation token for the `@biztactix` scope.
+- **Secrets → Actions → `NPMPUSH`** – an npm automation token for the `@biztactix` scope. Done
+  (repo secret, added 2026-09-21).
 - **Environments → `npm`** with a required reviewer – the publish job targets this environment, so
-  every release waits for Farhan to approve it before anything reaches the registry.
+  every release waits for Farhan to approve it before anything reaches the registry. **Still to do,
+  and do it before the first tag:** GitHub auto-creates a missing environment with no protection
+  rules, so without it the first `v*.*.*` tag publishes to npm with no approval step.
 
-Nothing is published until that approval, and a tag can be deleted and re-pushed if the guard fails.
+Nothing reaches npm until that approval; the GitHub Release appears as soon as the build passes. A tag
+can be deleted and re-pushed if the guard fails — a re-run replaces the assets on the existing release.
 
 ## License
 MIT
