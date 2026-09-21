@@ -33,6 +33,7 @@ jobs:
     outputs:
       tarball: ${{ steps.pack.outputs.tarball }}
       version: ${{ steps.verify.outputs.version }}
+      name: ${{ steps.verify.outputs.name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -62,6 +63,7 @@ jobs:
           fi
           echo "Releasing ${pkg_version} from tag ${GITHUB_REF_NAME}"
           echo "version=${pkg_version}" >> "$GITHUB_OUTPUT"
+          echo "name=$(node -p "require('./package.json').name")" >> "$GITHUB_OUTPUT"
 
       # --ignore-scripts for the same reason as ci.yml: isolated-vm (a transitive
       # dev dependency of n8n-workflow) runs a node-gyp build that is not needed
@@ -152,11 +154,12 @@ jobs:
           fi
 
   publish:
-    name: stage on npm
+    name: stage on npm (first release publishes)
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # This job never makes a version public. It runs `npm stage publish`, which
+    # Apart from the first-ever release (see the last step), this job never makes
+    # a version public. It runs `npm stage publish`, which
     # parks the version on the registry, not installable, until Farhan approves
     # it with 2FA (`npm stage approve <stage-id>`, or on npmjs.com). That npm-side
     # approval is the release gate. The `npm` GitHub environment is an optional
@@ -199,13 +202,34 @@ jobs:
       # Stages the exact file attached to the GitHub Release, so the two downloads
       # share a checksum. Nothing is rebuilt here: no checkout, no lifecycle
       # scripts. --access public is also required by npm for provenance on a
-      # scoped package. Deliberately NOT `npm publish`: a direct publish would go
-      # live with no human in the loop.
-      - name: Stage on npm with provenance
+      # scoped package.
+      #
+      # Staging is the rule: a staged version is not installable until Farhan
+      # approves it with 2FA. The one exception is the very first release —
+      # `npm stage` requires the package to already exist on the registry, so
+      # when `npm view` says E404 the version is published directly, once. Any
+      # other `npm view` failure (network, auth) stops the job rather than being
+      # mistaken for "does not exist".
+      - name: Stage on npm (first-ever release publishes directly)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPMPUSH }}
           TARBALL: ${{ needs.build.outputs.tarball }}
+          PKG: ${{ needs.build.outputs.name }}
         run: |
           set -euo pipefail
-          npm stage publish "release/${TARBALL}" --access public --provenance
-          echo "Staged, not published. Approve with: npm stage list @biztactix/n8n-nodes-typesafe && npm stage approve <stage-id>" >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          view_out="$(npm view "$PKG" name 2>&1)"
+          view_rc=$?
+          set -e
+          if [ "$view_rc" -eq 0 ]; then
+            npm stage publish "release/${TARBALL}" --access public --provenance
+            echo "Staged, not published. Approve with: \`npm stage list ${PKG}\` then \`npm stage approve <stage-id>\`" >> "$GITHUB_STEP_SUMMARY"
+          elif printf '%s' "$view_out" | grep -q 'E404'; then
+            echo "::notice::${PKG} does not exist on npm yet; npm stage cannot create a package, so this first version is published directly."
+            npm publish "release/${TARBALL}" --access public --provenance
+            echo "First release of ${PKG}: published directly (npm stage needs an existing package). Later releases are staged." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::Could not tell whether ${PKG} exists on npm; refusing to guess."
+            printf '%s\n' "$view_out"
+            exit 1
+          fi

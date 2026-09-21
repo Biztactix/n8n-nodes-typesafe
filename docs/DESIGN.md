@@ -393,9 +393,12 @@ argument parity with `npm publish` — checked locally with
 `npm stage publish <tgz> --access public --dry-run`, which reports `@biztactix/n8n-nodes-typesafe@0.1.0
 (staged)` with the same shasum as the `pre-0.1.0` asset. Consequences: a staged version reserves its
 semver slot, so re-releasing a version means rejecting the stage first; the tag is fixed at staging
-time; and `npm help stage` lists "package must already exist on the registry" as a prerequisite, which
-this package does not yet meet — if the first staged release is refused, 0.1.0 has to be published
-once by hand and staging used from then on. Not exercised against the live registry yet.
+time. **First release:** `npm help stage` lists "package must already exist on the registry" as a
+prerequisite, which this package does not yet meet, so the step runs `npm view <name>` first — exit 0
+means stage; an `E404` means the package has never been published and the version goes out with a
+direct `npm publish`, once; any other failure stops the job rather than being read as "does not
+exist". The three branches were dry-run locally with the upload commands stubbed. `NPMPUSH` was given
+publish rights on 2026-09-22 for this; it can be narrowed again after 0.1.0. Not exercised against the live registry yet.
 
 **The guard runs first**, before install or build, so a mismatch costs nothing and nothing can reach
 the registry: it compares `${GITHUB_REF_NAME#v}` with `node -p "require('./package.json').version"`

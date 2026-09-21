@@ -245,7 +245,7 @@ The run has three jobs around one tarball:
    stable `releases/latest/download/` URL) and `SHA256SUMS.txt` to a GitHub Release for the tag, with
    the manual-install command in the notes. It does not wait for the npm approval and needs no secret,
    so the download does not depend on the npm token.
-3. **publish** *stages* that tarball with `npm stage publish <that tarball> --access public
+3. **publish** *stages* that tarball (the first-ever release excepted, see below) with `npm stage publish <that tarball> --access public
    --provenance`. It never runs `npm publish`: a staged version sits on the registry, not installable,
    until a maintainer approves it with 2FA. The file on npm and the file on the Releases page are
    byte-identical. Provenance also requires the GitHub repo to stay public.
@@ -265,12 +265,14 @@ before the same version can be staged again.
 
 Prerequisites, all one-time and all Farhan's to do:
 - **Secrets → Actions → `NPMPUSH`** – an npm token with write access to the `@biztactix` scope. Done
-  (repo secret, added 2026-09-21). Staging works with any token type, so this should be a granular
-  token *without* "bypass 2FA"; npm recommends deleting bypass tokens once staging is in use.
-- **The package must already exist on npm.** `npm help stage` lists that as a prerequisite, and
-  `@biztactix/n8n-nodes-typesafe` does not exist yet. If the first staged release is refused for that
-  reason, publish 0.1.0 once by hand (`npm publish --access public` from a checkout of the tag, with
-  2FA) and use staging from the next version on. Untested either way until the first tag.
+  (repo secret, added 2026-09-21). Staging works with any token type, so after the first release this
+  should be a granular token *without* "bypass 2FA"; npm recommends deleting bypass tokens once
+  staging is in use.
+- **First release only:** `npm stage` cannot create a package (`npm help stage`: "the package must
+  already exist"), and `@biztactix/n8n-nodes-typesafe` does not exist yet. So the publish job asks
+  `npm view` first: on a 404 it runs `npm publish` directly, once; from then on the package exists and
+  every release is staged. Any other `npm view` failure stops the job. This is why `NPMPUSH` was given
+  publish rights on 2026-09-22; once 0.1.0 is out the token can go back to stage-only.
 - **2FA enabled on the approving npm account** – `npm stage approve` requires it.
 - *Optional:* **Environments → `npm`** with a required reviewer. The publish job targets this
   environment, so a reviewer makes the job wait before it even stages. Without one GitHub auto-creates
