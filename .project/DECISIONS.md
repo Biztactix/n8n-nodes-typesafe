@@ -19,7 +19,7 @@ Newest first. Status: Accepted / Proposed / Superseded.
 ## D-008: Production install is from npm via Community Nodes on the Coolify-hosted n8n
 - **Date:** 2026-09-19
 - **Status:** Accepted
-- **Context:** n8n at `automation.biztactix.com.au` runs in Coolify. Options were publish to npm, copy a `.tgz` into the container, or mount the build with `N8N_CUSTOM_EXTENSIONS`.
+- **Context:** n8n at `automate.biztactix.com.au` runs in Coolify. Options were publish to npm, copy a `.tgz` into the container, or mount the build with `N8N_CUSTOM_EXTENSIONS`.
 - **Decision:** Publish first, install by package name in Settings → Community Nodes. Tarball/mount stay as fallbacks for pre-release testing.
 - **Consequences:** The package must be public and secret-free. The `~/.n8n` volume on Coolify must persist so the install survives redeploys.
 

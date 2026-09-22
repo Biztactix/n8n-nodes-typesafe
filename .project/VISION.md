@@ -8,7 +8,7 @@ Biztactix wants n8n workflows to make typed decisions about text and JSON (which
 
 | Audience | What they get |
 |----------|---------------|
-| Biztactix automation (first consumer) | Inbound email on `automation.biztactix.com.au` classified as the first step of the mail workflow (Microsoft 365 / Outlook trigger), then routed with a Switch node |
+| Biztactix automation (first consumer) | Inbound email on `automate.biztactix.com.au` classified as the first step of the mail workflow (Microsoft 365 / Outlook trigger), then routed with a Switch node |
 | Non-developer workflow editors | Questions built in a form (name, type, labels / rubric) instead of raw JSON |
 | Other self-hosted n8n users | A public npm community node for TypeSafe AI that holds no secrets |
 

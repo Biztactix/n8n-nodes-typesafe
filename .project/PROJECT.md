@@ -1,6 +1,6 @@
 # n8n-nodes-typesafe
 
-n8n community node for the TypeSafe AI API, so n8n workflows can classify, score and ask yes/no questions about text or JSON. First use: classify inbound email on Biztactix's n8n (`automation.biztactix.com.au`) as the first step of the mail workflow. Started by Farhan at Biztactix, 2026-09-19. Sibling of the C# SDK at `../TypesafeAI-C#`, which is the reference for the wire format.
+n8n community node for the TypeSafe AI API, so n8n workflows can classify, score and ask yes/no questions about text or JSON. First use: classify inbound email on Biztactix's n8n (`automate.biztactix.com.au`) as the first step of the mail workflow. Started by Farhan at Biztactix, 2026-09-19. Sibling of the C# SDK at `../TypesafeAI-C#`, which is the reference for the wire format.
 
 ## Architecture
 

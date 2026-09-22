@@ -11,7 +11,7 @@ title: Ship v0.1 to production n8n
 updated: '2026-09-19'
 ---
 
-Take the scaffolded TypeSafe AI community node from "builds and lints" to running the Biztactix mail workflow on automation.biztactix.com.au.
+Take the scaffolded TypeSafe AI community node from "builds and lints" to running the Biztactix mail workflow on automate.biztactix.com.au.
 
 Success criteria:
 - Node verified inside a real n8n (credential test, model dropdown, noul/choice/score questions, error paths).
